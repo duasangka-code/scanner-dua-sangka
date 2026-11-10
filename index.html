@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scanner QR - Dua Sangka</title>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 450px;
+      margin: 30px auto;
+      background: white;
+      padding: 22px;
+      border-radius: 14px;
+      box-shadow: 0 3px 15px #0001;
+    }
+
+    h2 { letter-spacing: 2px; }
+
+    #reader {
+      width: 100%;
+      margin: 20px auto;
+    }
+
+    #hasil {
+      margin: 18px 0;
+      padding: 15px;
+      border-radius: 8px;
+      background: #eee;
+      white-space: pre-line;
+      overflow-wrap: anywhere;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      background: #222;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>DUA SANGKA</h2>
+    <p>Scanner QR Pengambilan Pesanan</p>
+
+    <div id="reader"></div>
+
+    <div id="hasil">
+      Tekan tombol untuk mengaktifkan kamera.
+    </div>
+
+    <button id="tombolScan" onclick="mulaiScanner()">
+      AKTIFKAN KAMERA
+    </button>
+  </div>
+
+  <script>
+    // Alamat Web App Google Apps Script Dua Sangka
+    const URL_APPS_SCRIPT =
+      "https://script.google.com/macros/s/AKfycbzaSrZMqmB1xfLbsQky48Qwo5qCA-WAxh0b6BZRLJhgbS37UvXp-R1KqkbAcS_tG1UQbA/exec";
+
+    let scanner = null;
+    let sedangMemproses = false;
+
+    function tampilkanHasil(pesan) {
+      document.getElementById("hasil").innerText = pesan;
+    }
+
+    function mulaiScanner() {
+      const tombol = document.getElementById("tombolScan");
+
+      if (!window.Html5Qrcode) {
+        tampilkanHasil("Library scanner gagal dimuat. Periksa internet.");
+        return;
+      }
+
+      if (!scanner) {
+        scanner = new Html5Qrcode("reader");
+      }
+
+      tombol.disabled = true;
+      tampilkanHasil("Meminta izin kamera...");
+
+      scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+
+        function(token) {
+          if (sedangMemproses) return;
+          sedangMemproses = true;
+
+          scanner.stop().then(function() {
+            tampilkanHasil("QR terbaca. Memeriksa pesanan...");
+
+            verifikasiToken(token);
+          }).catch(function(error) {
+            tampilkanHasil("Gagal menghentikan kamera: " + error);
+            tombol.disabled = false;
+            sedangMemproses = false;
+          });
+        }
+      ).then(function() {
+        tampilkanHasil("Kamera aktif. Arahkan ke QR pelanggan.");
+        tombol.innerText = "KAMERA AKTIF";
+      }).catch(function(error) {
+        tampilkanHasil("Kamera gagal dibuka: " + error);
+        tombol.disabled = false;
+      });
+    }
+
+    function verifikasiToken(token) {
+      const callback = "hasilVerifikasiDuaSangka";
+      const script = document.createElement("script");
+
+      window[callback] = function(res) {
+        tampilkanHasil(res.pesan || "Pemeriksaan selesai.");
+
+        document.getElementById("tombolScan").disabled = false;
+        document.getElementById("tombolScan").innerText =
+          "SCAN BERIKUTNYA";
+
+        sedangMemproses = false;
+
+        delete window[callback];
+        script.remove();
+      };
+
+      script.onerror = function() {
+        tampilkanHasil(
+          "Gagal menghubungi server. Periksa koneksi dan akses Apps Script."
+        );
+
+        document.getElementById("tombolScan").disabled = false;
+        sedangMemproses = false;
+
+        delete window[callback];
+        script.remove();
+      };
+
+      script.src =
+        URL_APPS_SCRIPT +
+        "?api=verifikasi" +
+        "&token=" + encodeURIComponent(token) +
+        "&callback=" + callback;
+
+      document.body.appendChild(script);
+    }
+  </script>
+</body>
+</html>
