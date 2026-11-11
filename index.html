@@ -134,6 +134,7 @@
       const script = document.createElement("script");
 
       window[callback] = function(res) {
+        console.log("Respons Apps Script:", res);
         tampilkanHasil(res.pesan || "Pemeriksaan selesai.");
 
         document.getElementById("tombolScan").disabled = false;
