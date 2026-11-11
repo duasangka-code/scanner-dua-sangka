@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -129,25 +128,76 @@
       });
     }
 
-    function verifikasiToken(token) {
-      const callback = "hasilVerifikasiDuaSangka";
-      const script = document.createElement("script");
+  
+function verifikasiToken(token) {
+  const callback = "hasilVerifikasiDuaSangka_" + Date.now();
+  const script = document.createElement("script");
 
-      window[callback] = function(res) {
-        console.log("Respons Apps Script:", res);
-        tampilkanHasil(res.pesan || "Pemeriksaan selesai.");
+  let selesai = false;
 
-        document.getElementById("tombolScan").disabled = false;
-        document.getElementById("tombolScan").innerText =
-          "SCAN BERIKUTNYA";
+  function bersihkan() {
+    selesai = true;
+    clearTimeout(batasWaktu);
+    delete window[callback];
+    script.remove();
+  }
 
-        sedangMemproses = false;
+  const tombol = document.getElementById("tombolScan");
 
-        delete window[callback];
-        script.remove();
-      };
+  const batasWaktu = setTimeout(function() {
+    if (selesai) return;
 
-      script.onerror = function() {
+    tampilkanHasil(
+      "Server terlalu lama merespons. Silakan coba lagi."
+    );
+
+    bersihkan();
+    tombol.disabled = false;
+    tombol.innerText = "SCAN BERIKUTNYA";
+    sedangMemproses = false;
+  }, 20000);
+
+  window[callback] = function(res) {
+    if (selesai) return;
+
+    tampilkanHasil(
+      res.pesan || "Pemeriksaan selesai."
+    );
+
+    bersihkan();
+
+    tombol.disabled = false;
+    tombol.innerText = "SCAN BERIKUTNYA";
+    sedangMemproses = false;
+  };
+
+  script.async = true;
+
+  script.onerror = function() {
+    if (selesai) return;
+
+    tampilkanHasil(
+      "Gagal menghubungi server. Periksa koneksi internet."
+    );
+
+    bersihkan();
+
+    tombol.disabled = false;
+    tombol.innerText = "SCAN BERIKUTNYA";
+    sedangMemproses = false;
+  };
+
+  script.src =
+    URL_APPS_SCRIPT +
+    "?api=verifikasi" +
+    "&token=" + encodeURIComponent(token) +
+    "&callback=" + callback +
+    "&_=" + Date.now();
+
+  document.body.appendChild(script);
+}
+
+    script.onerror = function() {
         tampilkanHasil(
           "Gagal menghubungi server. Periksa koneksi dan akses Apps Script."
         );
