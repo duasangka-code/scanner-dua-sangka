@@ -223,7 +223,25 @@
         "&token=" + encodeURIComponent(token) +
         "&callback=" + callback +
         "&_=" + Date.now();
+console.log("URL SERVER:", script.src);
 
+script.onload = function() {
+  console.log("SCRIPT BERHASIL DIMUAT");
+  if (!selesai) {
+    tampilkanHasil("Skrip dimuat, menunggu respons server...");
+  }
+};
+
+script.onerror = function() {
+  console.log("SCRIPT GAGAL DIMUAT");
+  if (selesai) return;
+
+  bersihkan();
+  tampilkanHasil("Gagal memuat respons dari Apps Script.");
+  tombol.disabled = false;
+  tombol.innerText = "SCAN BERIKUTNYA";
+  sedangMemproses = false;
+};
       document.body.appendChild(script);
     }
   </script>
