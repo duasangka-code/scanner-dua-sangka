@@ -108,10 +108,12 @@
         { fps: 10, qrbox: 250 },
 
         function(token) {
-          if (sedangMemproses) return;
-          sedangMemproses = true;
+  if (sedangMemproses) return;
+  sedangMemproses = true;
 
-          scanner.stop().then(function() {
+  tampilkanHasil("QR terbaca. Token: " + token);
+
+  scanner.stop().then(function() {
             tampilkanHasil("QR terbaca. Memeriksa pesanan...");
             scanner = null;
             verifikasiToken(token);
