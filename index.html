@@ -111,17 +111,19 @@
   if (sedangMemproses) return;
   sedangMemproses = true;
 
-  tampilkanHasil("QR terbaca. Token: " + token);
+ tampilkanHasil("QR terbaca. Isi QR: " + token);
 
+setTimeout(function() {
   scanner.stop().then(function() {
             tampilkanHasil("QR terbaca. Memeriksa pesanan...");
             scanner = null;
             verifikasiToken(token);
-          }).catch(function(error) {
-            tampilkanHasil("Gagal menghentikan kamera: " + error);
-            tombol.disabled = false;
-            sedangMemproses = false;
-          });
+            }).catch(function(error) {
+    tampilkanHasil("Gagal menghentikan kamera: " + error);
+    tombol.disabled = false;
+    sedangMemproses = false;
+  });
+}, 2000);
         }
       ).then(function() {
         tampilkanHasil("Kamera aktif. Arahkan ke QR pelanggan.");
