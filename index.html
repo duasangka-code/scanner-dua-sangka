@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -75,7 +76,6 @@
   </div>
 
   <script>
-    // Alamat Web App Google Apps Script Dua Sangka
     const URL_APPS_SCRIPT =
       "https://script.google.com/macros/s/AKfycbzaSrZMqmB1xfLbsQky48Qwo5qCA-WAxh0b6BZRLJhgbS37UvXp-R1KqkbAcS_tG1UQbA/exec";
 
@@ -94,10 +94,12 @@
         return;
       }
 
-      if (!scanner) {
-        scanner = new Html5Qrcode("reader");
+      if (scanner) {
+        tampilkanHasil("Scanner sedang disiapkan. Muat ulang halaman jika perlu.");
+        return;
       }
 
+      scanner = new Html5Qrcode("reader");
       tombol.disabled = true;
       tampilkanHasil("Meminta izin kamera...");
 
@@ -111,7 +113,7 @@
 
           scanner.stop().then(function() {
             tampilkanHasil("QR terbaca. Memeriksa pesanan...");
-
+            scanner = null;
             verifikasiToken(token);
           }).catch(function(error) {
             tampilkanHasil("Gagal menghentikan kamera: " + error);
@@ -125,95 +127,63 @@
       }).catch(function(error) {
         tampilkanHasil("Kamera gagal dibuka: " + error);
         tombol.disabled = false;
+        scanner = null;
       });
     }
 
-  
-function verifikasiToken(token) {
-  const callback = "hasilVerifikasiDuaSangka_" + Date.now();
-  const script = document.createElement("script");
+    function verifikasiToken(token) {
+      const callback = "hasilVerifikasiDuaSangka_" + Date.now();
+      const script = document.createElement("script");
+      const tombol = document.getElementById("tombolScan");
 
-  let selesai = false;
+      let selesai = false;
+      let batasWaktu;
 
-  function bersihkan() {
-    selesai = true;
-    clearTimeout(batasWaktu);
-    delete window[callback];
-    script.remove();
-  }
-
-  const tombol = document.getElementById("tombolScan");
-
-  const batasWaktu = setTimeout(function() {
-    if (selesai) return;
-
-    tampilkanHasil(
-      "Server terlalu lama merespons. Silakan coba lagi."
-    );
-
-    bersihkan();
-    tombol.disabled = false;
-    tombol.innerText = "SCAN BERIKUTNYA";
-    sedangMemproses = false;
-  }, 20000);
-
-  window[callback] = function(res) {
-    if (selesai) return;
-
-    tampilkanHasil(
-      res.pesan || "Pemeriksaan selesai."
-    );
-
-    bersihkan();
-
-    tombol.disabled = false;
-    tombol.innerText = "SCAN BERIKUTNYA";
-    sedangMemproses = false;
-  };
-
-  script.async = true;
-
-  script.onerror = function() {
-    if (selesai) return;
-
-    tampilkanHasil(
-      "Gagal menghubungi server. Periksa koneksi internet."
-    );
-
-    bersihkan();
-
-    tombol.disabled = false;
-    tombol.innerText = "SCAN BERIKUTNYA";
-    sedangMemproses = false;
-  };
-
-  script.src =
-    URL_APPS_SCRIPT +
-    "?api=verifikasi" +
-    "&token=" + encodeURIComponent(token) +
-    "&callback=" + callback +
-    "&_=" + Date.now();
-
-  document.body.appendChild(script);
-}
-
-    script.onerror = function() {
-        tampilkanHasil(
-          "Gagal menghubungi server. Periksa koneksi dan akses Apps Script."
-        );
-
-        document.getElementById("tombolScan").disabled = false;
-        sedangMemproses = false;
-
+      function bersihkan() {
+        selesai = true;
+        clearTimeout(batasWaktu);
         delete window[callback];
         script.remove();
+      }
+
+      batasWaktu = setTimeout(function() {
+        if (selesai) return;
+
+        tampilkanHasil("Server terlalu lama merespons. Silakan coba lagi.");
+        bersihkan();
+        tombol.disabled = false;
+        tombol.innerText = "SCAN BERIKUTNYA";
+        sedangMemproses = false;
+      }, 20000);
+
+      window[callback] = function(res) {
+        if (selesai) return;
+
+        tampilkanHasil(res.pesan || "Pemeriksaan selesai.");
+        bersihkan();
+        tombol.disabled = false;
+        tombol.innerText = "SCAN BERIKUTNYA";
+        sedangMemproses = false;
+      };
+
+      script.async = true;
+
+      script.onerror = function() {
+        if (selesai) return;
+
+        tampilkanHasil("Gagal menghubungi server. Periksa koneksi internet.");
+        bersihkan();
+        tombol.disabled = false;
+        tombol.innerText = "SCAN BERIKUTNYA";
+        sedangMemproses = false;
       };
 
       script.src =
         URL_APPS_SCRIPT +
         "?api=verifikasi" +
         "&token=" + encodeURIComponent(token) +
-        "&callback=" + callback;
+        "&callback=" + callback +
+        "&_=" + Date.now();
 
       document.body.appendChild(script);
     }
