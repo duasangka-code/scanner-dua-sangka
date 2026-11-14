@@ -171,7 +171,11 @@ setTimeout(function() {
       };
 
       script.async = true;
+script.onload = function() {
+  if (selesai) return;
 
+  tampilkanHasil("Skrip berhasil dimuat, tetapi callback tidak dijalankan.");
+};
       script.onerror = function() {
         if (selesai) return;
 
