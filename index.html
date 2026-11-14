@@ -70,11 +70,10 @@
       Tekan tombol untuk mengaktifkan kamera.
     </div>
 
-  <button id="tombolScan"
-  type="button"
-  onclick="document.getElementById('hasil').innerText='TOMBOL BERHASIL DITEKAN';">
-  AKTIFKAN KAMERA
-</button>
+    <button id="tombolScan" type="button" onclick="mulaiScanner()">
+      AKTIFKAN KAMERA
+    </button>
+  </div>
 
   <script>
     const URL_APPS_SCRIPT =
@@ -87,101 +86,81 @@
       document.getElementById("hasil").innerText = pesan;
     }
 
-  
-function mulaiScanner() {
-  const tombol = document.getElementById("tombolScan");
+    function mulaiScanner() {
+      const tombol = document.getElementById("tombolScan");
 
-  if (!window.Html5Qrcode) {
-    tampilkanHasil("Library scanner gagal dimuat. Periksa internet.");
-    return;
-  }
-
-  if (scanner) {
-    tampilkanHasil("Scanner sedang berjalan. Muat ulang halaman jika perlu.");
-    return;
-  }
-
-  tombol.disabled = true;
-  tampilkanHasil("Mencari kamera iPhone...");
-
-  Html5Qrcode.getCameras()
-    .then(function(kameras) {
-      if (!kameras || kameras.length === 0) {
-        throw new Error("Kamera tidak ditemukan. Periksa kamera iPhone.");
+      if (!window.Html5Qrcode) {
+        tampilkanHasil("Library scanner gagal dimuat. Periksa koneksi internet.");
+        return;
       }
 
-      // Utamakan kamera belakang
-      const kameraBelakang = kameras.find(function(kamera) {
-        return /back|rear|environment|belakang/i.test(kamera.label);
-      });
+      if (scanner) {
+        tampilkanHasil("Scanner masih berjalan.");
+        return;
+      }
 
-      const kameraDipilih = kameraBelakang || kameras[0];
+      tombol.disabled = true;
+      tampilkanHasil("Meminta akses kamera...");
 
-      scanner = new Html5Qrcode("reader");
+      Html5Qrcode.getCameras()
+        .then(function(kameras) {
+          if (!kameras || kameras.length === 0) {
+            throw new Error("Kamera tidak ditemukan.");
+          }
 
-      tampilkanHasil("Mengaktifkan kamera: " + kameraDipilih.label);
-
-      return scanner.start(
-        kameraDipilih.id,
-        { fps: 10, qrbox: 250 },
-
-        function(token) {
-          if (sedangMemproses) return;
-          sedangMemproses = true;
-
-          tampilkanHasil("QR terbaca. Memeriksa pesanan...");
-
-          scanner.stop().then(function() {
-            scanner = null;
-            verifikasiToken(token);
-          }).catch(function(error) {
-            tampilkanHasil("Gagal menghentikan kamera: " + error);
-            tombol.disabled = false;
-            sedangMemproses = false;
-            scanner = null;
+          const kameraBelakang = kameras.find(function(kamera) {
+            return /back|rear|environment|belakang/i.test(kamera.label);
           });
-        }
-      );
-    })
-    .then(function() {
-      tampilkanHasil("Kamera aktif. Arahkan ke QR pelanggan.");
-      tombol.innerText = "KAMERA AKTIF";
-    })
-    .catch(function(error) {
-      tampilkanHasil("Kamera gagal dibuka: " + error.message);
-      tombol.disabled = false;
-      tombol.innerText = "COBA LAGI";
-      scanner = null;
-      sedangMemproses = false;
-    });
-}
 
-        function(token) {
-  if (sedangMemproses) return;
-  sedangMemproses = true;
+          const kameraDipilih = kameraBelakang || kameras[0];
 
- tampilkanHasil("QR terbaca. Isi QR: " + token);
+          scanner = new Html5Qrcode("reader");
 
-setTimeout(function() {
-  scanner.stop().then(function() {
-            tampilkanHasil("QR terbaca. Memeriksa pesanan...");
-            scanner = null;
-            verifikasiToken(token);
-            }).catch(function(error) {
-    tampilkanHasil("Gagal menghentikan kamera: " + error);
-    tombol.disabled = false;
-    sedangMemproses = false;
-  });
-}, 2000);
-        }
-      ).then(function() {
-        tampilkanHasil("Kamera aktif. Arahkan ke QR pelanggan.");
-        tombol.innerText = "KAMERA AKTIF";
-      }).catch(function(error) {
-        tampilkanHasil("Kamera gagal dibuka: " + error);
-        tombol.disabled = false;
-        scanner = null;
-      });
+          tampilkanHasil("Mengaktifkan kamera...");
+
+          return scanner.start(
+            kameraDipilih.id,
+            { fps: 10, qrbox: 250 },
+            function(token) {
+              if (sedangMemproses) return;
+
+              sedangMemproses = true;
+              tombol.disabled = true;
+
+              tampilkanHasil("QR terbaca. Memeriksa pesanan...");
+
+              const scannerAktif = scanner;
+
+              scannerAktif.stop()
+                .catch(function() {
+                  // Lanjutkan pemeriksaan token.
+                })
+                .then(function() {
+                  scanner = null;
+                  verifikasiToken(token);
+                });
+            }
+          );
+        })
+        .then(function() {
+          tampilkanHasil("Kamera aktif. Arahkan ke QR pelanggan.");
+          tombol.innerText = "KAMERA AKTIF";
+        })
+        .catch(function(error) {
+          tampilkanHasil(
+            "Kamera gagal dibuka: " +
+            (error.message || error)
+          );
+
+          if (scanner) {
+            scanner.clear().catch(function() {});
+          }
+
+          scanner = null;
+          tombol.disabled = false;
+          tombol.innerText = "COBA LAGI";
+          sedangMemproses = false;
+        });
     }
 
     function verifikasiToken(token) {
@@ -191,6 +170,9 @@ setTimeout(function() {
 
       let selesai = false;
       let batasWaktu;
+
+      tombol.disabled = true;
+      tampilkanHasil("Menghubungi server Dua Sangka...");
 
       function bersihkan() {
         selesai = true;
@@ -202,8 +184,8 @@ setTimeout(function() {
       batasWaktu = setTimeout(function() {
         if (selesai) return;
 
-        tampilkanHasil("Server terlalu lama merespons. Silakan coba lagi.");
         bersihkan();
+        tampilkanHasil("Server terlalu lama merespons. Silakan coba lagi.");
         tombol.disabled = false;
         tombol.innerText = "SCAN BERIKUTNYA";
         sedangMemproses = false;
@@ -212,24 +194,24 @@ setTimeout(function() {
       window[callback] = function(res) {
         if (selesai) return;
 
-        tampilkanHasil(res.pesan || "Pemeriksaan selesai.");
         bersihkan();
+
+        tampilkanHasil(
+          res && res.pesan
+            ? res.pesan
+            : "Server memberikan respons yang tidak dikenal."
+        );
+
         tombol.disabled = false;
         tombol.innerText = "SCAN BERIKUTNYA";
         sedangMemproses = false;
       };
 
-      script.async = true;
-script.onload = function() {
-  if (selesai) return;
-
-  tampilkanHasil("Skrip berhasil dimuat, tetapi callback tidak dijalankan.");
-};
       script.onerror = function() {
         if (selesai) return;
 
-       tampilkanHasil("Koneksi JSONP gagal. Periksa pemuatan skrip Apps Script.");
         bersihkan();
+        tampilkanHasil("Koneksi ke server gagal. Periksa koneksi internet.");
         tombol.disabled = false;
         tombol.innerText = "SCAN BERIKUTNYA";
         sedangMemproses = false;
