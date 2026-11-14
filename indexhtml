@@ -175,7 +175,7 @@ setTimeout(function() {
       script.onerror = function() {
         if (selesai) return;
 
-        tampilkanHasil("Gagal menghubungi server. Periksa koneksi internet.");
+       tampilkanHasil("Koneksi JSONP gagal. Periksa pemuatan skrip Apps Script.");
         bersihkan();
         tombol.disabled = false;
         tombol.innerText = "SCAN BERIKUTNYA";
